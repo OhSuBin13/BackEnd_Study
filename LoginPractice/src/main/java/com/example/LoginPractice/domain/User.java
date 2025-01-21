@@ -22,6 +22,8 @@ public class User {
     private String loginId;
     private String password;
     private String nickname;
+    private String provider;
+    private String providerId;
 
     private UserRole role;
 }

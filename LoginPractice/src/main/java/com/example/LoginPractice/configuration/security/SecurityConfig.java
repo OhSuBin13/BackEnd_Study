@@ -1,6 +1,9 @@
 package com.example.LoginPractice.configuration.security;
 
 import com.example.LoginPractice.domain.UserRole;
+import com.example.LoginPractice.error.MyAccessDeniedHandler;
+import com.example.LoginPractice.error.MyAuthenticationEntryPoint;
+import com.example.LoginPractice.service.PrincipalOauth2UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.SecurityBuilder;
@@ -9,13 +12,14 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig{
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, PrincipalOauth2UserService principalOauth2UserService) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(m -> {
                     m.requestMatchers("/security-login/info").authenticated();
@@ -32,6 +36,18 @@ public class SecurityConfig{
                 .logout(logout -> {
                     logout.logoutUrl("/security-login/logout");
                     logout.invalidateHttpSession(true).deleteCookies("JSESSIONID");
+                })
+                .oauth2Login(httpSecurityOAuth2LoginConfigurer -> {
+                    httpSecurityOAuth2LoginConfigurer.loginPage("/security-login/login");
+                    httpSecurityOAuth2LoginConfigurer.defaultSuccessUrl("/security-login");
+                    httpSecurityOAuth2LoginConfigurer.userInfoEndpoint((userInfoEndpointConfig) -> {
+                        userInfoEndpointConfig.userService(principalOauth2UserService);
+                    });
+                })
+                .exceptionHandling(httpSecurityExceptionHandlingConfigurer -> {
+                    httpSecurityExceptionHandlingConfigurer.authenticationEntryPoint(new MyAuthenticationEntryPoint());
+                    httpSecurityExceptionHandlingConfigurer.accessDeniedHandler(new MyAccessDeniedHandler());
                 }).build();
+
     }
 }
